@@ -13,6 +13,7 @@
 #import "YYClassInfo.h"
 #import <objc/message.h>
 
+/// 强制设置内联函数
 #define force_inline __inline__ __attribute__((always_inline))
 
 /// Foundation Class Type
@@ -81,6 +82,7 @@ static force_inline NSNumber *YYNSNumberCreateFromID(__unsafe_unretained id valu
     static NSDictionary *dic;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
+        // 创建一个NSCharacterSet对象，其中只包含'.'这一个Character;OC中单引号包围的内容是char型，即int型的子集
         dot = [NSCharacterSet characterSetWithRange:NSMakeRange('.', 1)];
         dic = @{@"TRUE" :   @(YES),
                 @"True" :   @(YES),
@@ -94,7 +96,7 @@ static force_inline NSNumber *YYNSNumberCreateFromID(__unsafe_unretained id valu
                 @"NO" :     @(NO),
                 @"No" :     @(NO),
                 @"no" :     @(NO),
-                @"NIL" :    (id)kCFNull,
+                @"NIL" :    (id)kCFNull,  // kCFNull是NSNull的单例对象
                 @"Nil" :    (id)kCFNull,
                 @"nil" :    (id)kCFNull,
                 @"NULL" :   (id)kCFNull,
@@ -119,12 +121,15 @@ static force_inline NSNumber *YYNSNumberCreateFromID(__unsafe_unretained id valu
         if ([(NSString *)value rangeOfCharacterFromSet:dot].location != NSNotFound) {
             const char *cstring = ((NSString *)value).UTF8String;
             if (!cstring) return nil;
+            // 把参数strz字符串转换为一个浮点数，C的库函数
             double num = atof(cstring);
+            // isnan如果参数是一个非数字值，返回true，否则返回false; isinf判断参数是否是无穷的(返回true)
             if (isnan(num) || isinf(num)) return nil;
             return @(num);
         } else {
             const char *cstring = ((NSString *)value).UTF8String;
             if (!cstring) return nil;
+            // 将字符串转换为长整型；如果数字前有字符则为非法字符，返回0；https://blog.51cto.com/14793471/2491275
             return @(atoll(cstring));
         }
     }
